@@ -13,6 +13,9 @@ totalTiles = (map_height) * (map_width)
 remainingTiles = totalTiles - numberCharacters
 lastkey =  'nothing'
 musicState = 'playing'
+last_message = ''
+orc_space = ''
+player_space = ''
 
 orcs = {speed=1}
 walls = {}
@@ -24,8 +27,15 @@ function in_table ( search, table )
 	return false
 end
 
+function goodMove(x,y)
+	space = (possible_orc_x * 2) + (possible_orc_y/2)
+	if in_table(space, walls) then
+		return false
+	end
+end
+
 function keypressed(key) 
-	playerMoved = no
+	playerMoved = 'no'
 	-- I don't want to register spaces. 
 	if key == love.key_p then 
 		if musicState == 'playing' then
@@ -139,27 +149,33 @@ function pixelsToXY(value)
 	return xy
 end
 
+function getSpace(x,y)
+	space = (y-1) * (map_width) + (x)
+	return space
+end
+
 function moveOrc()
 	
-	x_table = {0,grid_size,-grid_size}
-	y_table = {0,grid_size,-grid_size}
-	
+	x_table = {0,1,-1}
+	y_table = {0,1,-1}
+	goodSpot = 'no'
+
 	repeat
-		repeat
-			x_direction = math.random(1,3)
-			possiblex = x_table[x_direction]
-		until orc_x+possiblex <= map_width * grid_size
-	until orc_x+possiblex >= 0
+		possible_orc_x = x_table[math.random(1,3)]
+		possible_orc_y = y_table[math.random(1,3)]
+		
+		space = math.ceil(possible_orc_x * 2) + math.ceil(possible_orc_y/2)
+		if in_table(space,walls) then
+			goodSpot = 'no'
+		else
+			goodSpot = 'yes'
+			possiblex = possible_orc_x * grid_size
+			possibley = possible_orc_y * grid_size
+		end
+	until goodSpot == 'yes'
 	
-	repeat
-		repeat
-			y_direction = math.random(1,3)
-			possibley = y_table[y_direction]
-		until orc_y+possibley <= map_height * grid_size
-	until orc_y+possibley >= 0
-	
-	orc_x = orc_x+possiblex
-	orc_y = orc_y+possibley
+	orc_x = orc_x + (possiblex)
+	orc_y = orc_y + (possibley)
 
 	pie_x = orc_x
 	pie_y = orc_y
@@ -172,51 +188,71 @@ end
 
 function movePlayer(dir)
 	if dir == 'punch' then
-		playerMoved = yes
+		playerMoved = 'yes'
 	end
 	if dir == 'up_left' then
-		player_x = player_x-grid_size
-		player_y = player_y-grid_size
-		playerMoved = yes
+		possible_player_x = -1
+		possible_player_y = -1
+		playerMoved = 'yes'
 	end
 	if dir == 'up_right' then
-		player_x = player_x+grid_size
-		player_y = player_y-grid_size
-		playerMoved = yes
+		possible_player_x = 1
+		possible_player_y = -1
+		playerMoved = 'yes'
 	end
 	if dir == 'down_left' then
-		player_x = player_x-grid_size
-		player_y = player_y+grid_size
-		playerMoved = yes
+		possible_player_x = -1
+		possible_player_y = 1
+		playerMoved = 'yes'
 	end
 	if dir == 'down_right' then
-		player_x = player_x+grid_size
-		player_y = player_y+grid_size
-		playerMoved = yes
+		possible_player_x = 1
+		possible_player_y = 1
+		playerMoved = 'yes'
 	end
 	if dir == 'left' then
-		player_x = player_x-grid_size
-		playerMoved = yes
+		possible_player_x = -1
+		possible_player_y = 0
+		playerMoved = 'yes'
 	end
 	if dir == 'down' then
-		player_y = player_y+grid_size
-		playerMoved = yes
+		possible_player_y = 1
+		possible_player_x = 0
+		playerMoved = 'yes'
 	end
 	if dir == 'right' then
-		player_x = player_x+grid_size
-		playerMoved = yes
+		possible_player_x = 1
+		possible_player_y = 0
+		playerMoved = 'yes'
 	end
 	if dir == 'up' then
-		player_y = player_y-grid_size
-		playerMoved = yes
+		possible_player_y = -1
+		possible_player_x = 0
+		playerMoved = 'yes'
+	end
+	space = (player_y-1) * (map_width) + (player_x)
+	if in_table(space,walls) then
+		playerMoved = 'no'
+		last_message = '*bump*'
+	else
+		playerMoved = 'yes'
 	end
 	
-	if playerMoved == yes then
+	if playerMoved == 'yes' then
+		player_x_pixels = player_x_pixels + (possible_player_x * grid_size)
+		player_y_pixels = player_y_pixels + (possible_player_y * grid_size)
+		player_x = player_x + possible_player_x
+		player_y = player_y + possible_player_y
+		if player_y == 1 then
+			player_space = player_x 
+		else
+			player_space = (player_y-1) * (map_width) + (player_x)
+		end
 		moveOrc()
 		totalMoves = totalMoves+1
 	end
 	
-	playerMoved = no
+	playerMoved = 'no'
 end
 
 function load()
@@ -304,6 +340,7 @@ function load()
 	
 	orc_x = possible_orc_x * grid_size - (grid_size/2)
 	orc_y = possible_orc_y * grid_size - (grid_size/2)
+	orc_space = (possible_orc_x * 2) + (possible_orc_y/2)
 	
 	-- Gently set down our pie(s)
 	pie_x = orc_x
@@ -321,8 +358,11 @@ function load()
 			goodSpot = 'yes'
 		end
 	until goodSpot == 'yes'
-	player_x = possible_orc_x * grid_size - (grid_size/2)
-	player_y = possible_orc_y * grid_size - (grid_size/2)
+	player_x = possible_player_x
+	player_y = possible_player_y
+	player_x_pixels = possible_player_x * grid_size - (grid_size/2)
+	player_y_pixels = possible_player_y * grid_size - (grid_size/2)
+	player_space = (player_x * 2) + (player_y/2)
 	player_facing = 0
 	
 end
@@ -337,17 +377,20 @@ function update(dt)
 end
 
 function draw()
+	g = 0
 	for k,v in pairs(walls) do
 		love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+		love.graphics.draw("w" .. k, g, 610)
+		g = g + 40
 	end
 	
 	love.graphics.draw(orc, orc_x, orc_y)
 	love.graphics.draw(pie, orc_x-10, orc_y-10)
-	love.graphics.draw(player, player_x, player_y, player_facing)
-	love.graphics.draw(arrow, player_x, player_y,player_facing)
-	love.graphics.draw("player position: " .. player_x .. ", " .. player_y, 0, 630)
-	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y, 0, 645)
-	love.graphics.draw("rooms: " .. numberRooms, 0, 615)
+	love.graphics.draw(player, player_x_pixels, player_y_pixels, player_facing)
+	love.graphics.draw(arrow, player_x_pixels, player_y_pixels,player_facing)
+	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 630)
+	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 645)
+	love.graphics.draw(last_message, 250, 625)
 	love.graphics.draw("facing " .. player_facing, 520, 620)
 
 	love.graphics.draw("moves " .. totalMoves, 520, 650)
