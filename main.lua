@@ -10,6 +10,9 @@ grid_size = 50
 totalMoves = 0
 numberRooms = 0
 totalTiles = (map_height) * (map_width)
+remainingTiles = totalTiles - numberCharacters
+lastkey =  'nothing'
+musicState = 'playing'
 
 function keypressed(key) 
 	playerMoved = no
@@ -209,10 +212,6 @@ end
 function load()
 	mode = love.graphics.setMode(650, 700, false, true, 4)
 	
-	lastkey =  'nothing'
-	musicState = 'playing'
-
-	remainingTiles = totalTiles - numberCharacters
 	tiles = {}
 	k = 1
 	for i=1, map_width, 1 do
@@ -290,11 +289,11 @@ function draw()
 	repeat
 		i=i+1
 		if i == 1 then
-			love.graphics.draw(brown_wall, 25, 25)
+			love.graphics.draw(brown_wall, grid_size/2, grid_size/2)
 		else
 			x = i*50-25
-			love.graphics.draw(brown_wall, x, 25)
-			love.graphics.draw(brown_wall, x, 575)
+			love.graphics.draw(brown_wall, x, grid_size/2)
+			love.graphics.draw(brown_wall, x, grid_size*map_height-(grid_size/2))
 		end
 		
 	until i == map_width
@@ -303,8 +302,8 @@ function draw()
 	repeat
 		i=i+1
 		y = i*50-25
-		love.graphics.draw(brown_wall, 25, y)
-		love.graphics.draw(brown_wall, 625, y)
+		love.graphics.draw(brown_wall, grid_size/2, y)
+		love.graphics.draw(brown_wall, grid_size*map_width-(grid_size/2), y)
 	until i == map_height
 
 	love.graphics.draw(orc, orc_x, orc_y)
