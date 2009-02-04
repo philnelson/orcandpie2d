@@ -321,7 +321,7 @@ function draw()
 	while row<12 do
 		column=0
 		while column<16 do
-			love.graphics.draw(grid,column*50+25,row*50+25)
+			love.graphics.draw(grid,column*grid_size+(grid_size/2),row*grid_size+(grid_size/2))
 			column = column+1
 		end
 		row = row+1
