@@ -14,6 +14,16 @@ remainingTiles = totalTiles - numberCharacters
 lastkey =  'nothing'
 musicState = 'playing'
 
+orcs = {speed=1}
+walls = {}
+
+function in_table ( search, table ) 
+ 	for _,v in pairs(table) do
+		if (v==search) then return true end
+	end
+	return false
+end
+
 function keypressed(key) 
 	playerMoved = no
 	-- I don't want to register spaces. 
@@ -235,7 +245,6 @@ function load()
 	end
 	
 	rooms = {}
-	
 	while remainingTiles > 12 do
 		numberRooms=numberRooms+1
 		repeat
@@ -243,6 +252,28 @@ function load()
 			dimensions = theSize / 4 + 1
 		until math.mod(theSize, 4) == 0
 		remainingTiles = remainingTiles - theSize
+	end
+	
+	-- Generate room walls around border
+	i = 0
+	for j=1, map_width, 1 do
+		for k=1, map_height, 1 do
+			i = i + 1
+			x = j
+			y = k
+			if y == 1 then
+				walls[i] = {x=x,y=y}
+			end
+			if x == 1 then
+				walls[i] = {x=x,y=y}
+			end
+			if y == map_height then
+				walls[i] = {x=x,y=y}
+			end
+			if x == map_width then
+				walls[i] = {x=x,y=y}
+			end
+		end
 	end
 	
 	-- Load a font 
@@ -258,18 +289,40 @@ function load()
 	pie = love.graphics.newImage("pie.png")
 	brown_wall = love.graphics.newImage("brown_wall.png")
 
-	orc_x = math.random(1,map_height)
-			
-	orc_y = math.random(1,map_width)
+	-- Plop down the orc(s)
+	goodSpot = 'no'
+	repeat
+		possible_orc_x = math.random(1,map_height)
+		possible_orc_y = math.random(1,map_width)
+		space = (possible_orc_x * 2) + (possible_orc_y/2)
+		if in_table(space,walls) then
+			goodSpot = 'no'
+		else
+			goodSpot = 'yes'
+		end
+	until goodSpot == 'yes'
 	
-	orc_speed = math.random()
+	orc_x = possible_orc_x * grid_size - (grid_size/2)
+	orc_y = possible_orc_y * grid_size - (grid_size/2)
 	
+	-- Gently set down our pie(s)
 	pie_x = orc_x
 	pie_y = orc_y
-	-- plop down the player
 	
-	player_x = math.random(1,map_height)
-	player_y = math.random(1,map_width)
+	-- plop down the player
+	goodSpot = 'no'
+	repeat
+		possible_player_x = math.random(1,map_height)
+		possible_player_y = math.random(1,map_width)
+		space = (possible_player_x * 2) + (possible_player_y/2)
+		if in_table(space,walls) then
+			goodSpot = 'no'
+		else
+			goodSpot = 'yes'
+		end
+	until goodSpot == 'yes'
+	player_x = possible_orc_x * grid_size - (grid_size/2)
+	player_y = possible_orc_y * grid_size - (grid_size/2)
 	player_facing = 0
 	
 end
@@ -284,28 +337,10 @@ function update(dt)
 end
 
 function draw()
-
-	i = 0
-	repeat
-		i=i+1
-		if i == 1 then
-			love.graphics.draw(brown_wall, grid_size/2, grid_size/2)
-		else
-			x = i*50-25
-			love.graphics.draw(brown_wall, x, grid_size/2)
-			love.graphics.draw(brown_wall, x, grid_size*map_height-(grid_size/2))
-		end
-		
-	until i == map_width
+	for k,v in pairs(walls) do
+		love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+	end
 	
-	i = 0
-	repeat
-		i=i+1
-		y = i*50-25
-		love.graphics.draw(brown_wall, grid_size/2, y)
-		love.graphics.draw(brown_wall, grid_size*map_width-(grid_size/2), y)
-	until i == map_height
-
 	love.graphics.draw(orc, orc_x, orc_y)
 	love.graphics.draw(pie, orc_x-10, orc_y-10)
 	love.graphics.draw(player, player_x, player_y, player_facing)
@@ -316,7 +351,7 @@ function draw()
 	love.graphics.draw("facing " .. player_facing, 520, 620)
 
 	love.graphics.draw("moves " .. totalMoves, 520, 650)
-	
+	-- Draw the grid
 	row=0
 	while row<12 do
 		column=0
