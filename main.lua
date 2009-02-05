@@ -47,20 +47,36 @@ function load()
 		y1 = player_y
 		y2 = orc_y
 		
-		last_message = 's:' .. start_space .. 'e: ' .. end_space
+	--	last_message = 's:' .. start_space .. 'e: ' .. end_space
+		
 	end
 
 	function moveOrc()
-		orc_player_x_diff = orc_x + player_x
-		orc_player_y_diff = orc_y + player_y
+		orc_player_x_diff = orc_x - player_x
+		orc_player_y_diff = orc_y - player_y
 		
-		x_table = {0,1,-1}
-		y_table = {0,1,-1}
+		if orc_player_x_diff >= -2 then
+			if orc_player_x_diff <= 2 then
+				if orc_player_y_diff >= -2 then
+					if orc_player_y_diff <= 2 then
+						orc_sees_player = 'yes'
+					end
+				end
+			end
+		else
+			orc_sees_player = 'no'
+		end
+
 		goodSpot = 'no'
 		
 		if orc_sees_player == 'yes' then
 			possible_next_move = findPath(orc_space, player_space)
+			last_message = 'orc sees you! shit!'
+			orc = love.graphics.newImage("red_orc.png")
 		else
+			orc = love.graphics.newImage("orc.png")
+			x_table = {0,1,-1}
+			y_table = {0,1,-1}
 			repeat
 				possible_orc_x = x_table[math.random(1,3)]
 				possible_orc_y = y_table[math.random(1,3)]
@@ -121,6 +137,8 @@ function load()
 				end
 			until goodSpot == 'yes'
 		end
+		last_message = 'x:' .. orc_player_x_diff .. 'y: ' .. orc_player_y_diff
+		orc_sees_player = 'no'
 	end
 
 	function facePlayer(dir)
@@ -243,7 +261,9 @@ function load()
 	-- Load music
 	love.graphics.setCaption("Orc & Pie")
 	grid = love.graphics.newImage("grid.png")
+	
 	orc = love.graphics.newImage("orc.png")
+	
 	player = love.graphics.newImage("player.png")
 	arrow = love.graphics.newImage("arrow.png")
 	pie = love.graphics.newImage("pie.png")
@@ -330,7 +350,11 @@ function draw()
 	love.graphics.draw("facing " .. player_facing, 520, 620)
 
 	love.graphics.draw("moves " .. totalMoves, 520, 650)
+	
+	-- "see player" debugging
+	
 	love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
+	love.graphics.rectangle(1, orc_x_pixels-(grid_size*2)-(grid_size/2), orc_y_pixels-(grid_size*2)-(grid_size/2),(grid_size*5),(grid_size*5))
 end
 
 
