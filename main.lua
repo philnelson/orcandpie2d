@@ -60,7 +60,6 @@ function load()
 		
 		if orc_sees_player == 'yes' then
 			possible_next_move = findPath(orc_space, player_space)
-		end
 		else
 			repeat
 				possible_orc_x = x_table[math.random(1,3)]
