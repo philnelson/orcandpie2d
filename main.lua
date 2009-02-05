@@ -50,11 +50,10 @@ function load()
 	--	last_message = 's:' .. start_space .. 'e: ' .. end_space
 		
 	end
-
-	function moveOrc()
-		orc_player_x_diff = orc_x - player_x
-		orc_player_y_diff = orc_y - player_y
-		
+	
+	function canSeePlayer(x,y)
+		orc_player_x_diff = x - player_x
+		orc_player_y_diff = y - player_y
 		if orc_player_x_diff >= -2 then
 			if orc_player_x_diff <= 2 then
 				if orc_player_y_diff >= -2 then
@@ -66,6 +65,11 @@ function load()
 		else
 			orc_sees_player = 'no'
 		end
+	end
+
+	function moveOrc()
+	
+		canSeePlayer(orc_x,orc_y)
 
 		goodSpot = 'no'
 		
@@ -138,6 +142,7 @@ function load()
 			until goodSpot == 'yes'
 		end
 		last_message = 'x:' .. orc_player_x_diff .. 'y: ' .. orc_player_y_diff
+		
 		orc_sees_player = 'no'
 	end
 
