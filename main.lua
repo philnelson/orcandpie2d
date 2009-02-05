@@ -16,12 +16,18 @@ function load()
 	message_angle = 0
 	totalTiles = (map_height) * (map_width)
 	remainingTiles = totalTiles - numberCharacters
+	grid_state = 'on'
 	lastkey =  'nothing'
 	musicState = 'playing'
+	pie_status = 'is being carried by the orc'
 	last_message = ''
 	orc_space = ''
 	player_space = ''
 	orc_sees_player = 'no'
+	orc_carrying_pie = 'yes'
+	orc = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine',str=2}
+	player = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine'}
+	combat_message = ''
 
 	orcs = {speed=1}
 	walls = {}
@@ -47,8 +53,25 @@ function load()
 		y1 = player_y
 		y2 = orc_y
 		
-	--	last_message = 's:' .. start_space .. 'e: ' .. end_space
+		last_message = 's:' .. start_space .. 'e: ' .. end_space
 		
+	end
+	
+	function rollUpPlayer()
+		dex_score = rollDice(3,6)
+		player = {dex=dex_score}
+	end
+	
+	function rollDice(number,sides)
+		rolls = {}
+		total = 0
+		for i=1, number, 1 do
+			table.insert(roll,math.random(1,sides))
+		end
+		for k,v in pairs(rolls) do
+			total = v+total
+		end
+		return total
 	end
 	
 	function canSeePlayer(x,y)
@@ -59,6 +82,9 @@ function load()
 				if orc_player_y_diff >= -2 then
 					if orc_player_y_diff <= 2 then
 						orc_sees_player = 'yes'
+						if orc_carrying_pie == 'yes' then
+							setDownPie(x*grid_size-(grid_size/2),y*grid_size-(grid_size/2))
+						end
 					end
 				end
 			end
@@ -66,19 +92,59 @@ function load()
 			orc_sees_player = 'no'
 		end
 	end
+	
+	function canAttackPlayer(x,y)
+		orc_player_x_diff = x - player_x
+		orc_player_y_diff = y - player_y
+		orcCanAttack ='no'
+		if orc_player_x_diff >= -1 then
+			if orc_player_x_diff <= 1 then
+				if orc_player_y_diff >= -1 then
+					if orc_player_y_diff <= 1 then
+					--	combat_message = 'yes'
+						orcCanAttack = 'yes'
+					end
+				end
+			end
+		end
+	end
+	
+	function setDownPie(x,y)
+		pie_x = x
+		pie_y = y
+		orc_carrying_pie = 'no'
+		pie_status = 'was set down gently'
+	end
+	
+	function playerGetPie()
+		pie_x = player_x_pixels
+		pie_y = player_y_pixels
+		orc_carrying_pie = 'no'
+		pie_status = 'is being carried by you!'
+		player_carrying_pie = 'yes'
+	end
+	
+	function attackPlayer(source)
+		combat_message = 'orc attacked'
+	end
 
 	function moveOrc()
-	
+		combat_message = ''
 		canSeePlayer(orc_x,orc_y)
+		canAttackPlayer(orc_x,orc_y)
 
 		goodSpot = 'no'
 		
 		if orc_sees_player == 'yes' then
-			possible_next_move = findPath(orc_space, player_space)
+			if orcCanAttack == 'yes' then
+				attackPlayer('orc')
+			else
+				possible_next_move = findPath(orc_space, player_space)	
+			end
 			last_message = 'orc sees you! shit!'
-			orc = love.graphics.newImage("red_orc.png")
+			orc_sprite = love.graphics.newImage("red_orc.png")
 		else
-			orc = love.graphics.newImage("orc.png")
+			orc_sprite = love.graphics.newImage("orc.png")
 			x_table = {0,1,-1}
 			y_table = {0,1,-1}
 			repeat
@@ -94,8 +160,10 @@ function load()
 					orc_y_pixels = orc_y_pixels + (possible_orc_y * grid_size)
 					orc_x = orc_x + possible_orc_x
 					orc_y = orc_y + possible_orc_y
-					pie_x = orc_x_pixels-10
-					pie_y = orc_y_pixels-10
+					if orc_carrying_pie == 'yes' then
+						pie_x = orc_x_pixels-10
+						pie_y = orc_y_pixels-10
+					end
 					if orc_y == 1 then
 						orc_space = orc_x 
 					else
@@ -141,7 +209,7 @@ function load()
 				end
 			until goodSpot == 'yes'
 		end
-		last_message = 'x:' .. orc_player_x_diff .. 'y: ' .. orc_player_y_diff
+		--last_message = 'x:' .. orc_player_x_diff .. 'y: ' .. orc_player_y_diff
 		
 		orc_sees_player = 'no'
 	end
@@ -216,6 +284,17 @@ function load()
 			else
 				player_space = (player_y-1) * (map_width) + (player_x)
 			end
+			if player_x_pixels == pie_x then
+				if player_y_pixels == pie_y then
+					if player_carrying_pie ~= 'yes' then
+						playerGetPie()
+					end
+				end
+			end
+			if player_carrying_pie == 'yes' then
+				pie_x = player_x_pixels
+				pie_y = player_y_pixels
+			end
 			moveOrc()
 			totalMoves = totalMoves+1
 		end
@@ -267,9 +346,9 @@ function load()
 	love.graphics.setCaption("Orc & Pie")
 	grid = love.graphics.newImage("grid.png")
 	
-	orc = love.graphics.newImage("orc.png")
+	orc_sprite = love.graphics.newImage("orc.png")
 	
-	player = love.graphics.newImage("player.png")
+	player_sprite = love.graphics.newImage("player.png")
 	arrow = love.graphics.newImage("arrow.png")
 	pie = love.graphics.newImage("pie.png")
 	brown_wall = love.graphics.newImage("brown_wall.png")
@@ -279,7 +358,7 @@ function load()
 	repeat
 		possible_orc_x = math.random(2,map_height-1)
 		possible_orc_y = math.random(2,map_width-1)
-		space = math.ceil(possible_orc_x * 2) + math.ceil(possible_orc_y / 2)
+		space = getSpace(possible_orc_x,possible_orc_y)
 		if walls[space].type == 'empty' then
 			goodSpot = 'yes'
 			orc_x = possible_orc_x
@@ -344,16 +423,23 @@ function draw()
 		g = g + 40
 	end
 	
-	love.graphics.draw(orc, orc_x_pixels, orc_y_pixels)
+	love.graphics.draw(orc_sprite, orc_x_pixels, orc_y_pixels)
 	love.graphics.draw(arrow, orc_x_pixels, orc_y_pixels, orc_facing)
-	love.graphics.draw(pie, pie_x, pie_y)
-	love.graphics.draw(player, player_x_pixels, player_y_pixels, player_facing)
+	love.graphics.draw(player_sprite, player_x_pixels, player_y_pixels, player_facing)
 	love.graphics.draw(arrow, player_x_pixels, player_y_pixels,player_facing)
-	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 630)
-	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 645)
+	love.graphics.draw(pie, pie_x, pie_y)
+	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 620)
+	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 635)
+	love.graphics.draw("pie position: " .. pie_x .. ", " .. pie_y, 0, 650)
+	love.graphics.draw("pie " .. pie_status, 0, 665)
+	love.graphics.draw("you: ", 0, 680)
+	offset = 30
+	for k,v in pairs(player) do
+		love.graphics.draw(k .. ' ' .. v, offset, 680)
+		offset = offset+65
+	end
 	love.graphics.draw(last_message, message_x, message_y,message_angle)
-	love.graphics.draw("facing " .. player_facing, 520, 620)
-
+	love.graphics.draw(combat_message, 250, 635)
 	love.graphics.draw("moves " .. totalMoves, 520, 650)
 	
 	-- "see player" debugging
@@ -380,6 +466,16 @@ function keypressed(key)
 	
 	if key == love.key_f then
 		fulltog = love.graphics.toggleFullscreen()
+	end
+	
+	if key == love.key_g then
+		if grid_state == 'on' then
+			grid = love.graphics.newImage("blank.png")
+			grid_state = 'off'
+		else
+			grid = love.graphics.newImage("grid.png")
+			grid_state = 'on'
+		end
 	end
 	
 	if key == love.key_left then
