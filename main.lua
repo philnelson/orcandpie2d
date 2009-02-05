@@ -11,6 +11,9 @@ function load()
 	grid_size = 50
 	totalMoves = 0
 	numberRooms = 0
+	message_x = 250
+	message_y = 625
+	message_angle = 0
 	totalTiles = (map_height) * (map_width)
 	remainingTiles = totalTiles - numberCharacters
 	lastkey =  'nothing'
@@ -34,6 +37,19 @@ function load()
 		space = (y-1) * (map_width) + (x)
 		return space
 	end
+	
+	function findPath(start_space, end_space)
+		openList = {}
+		closedList = {}
+		x1 = player_x
+		x2 = orc_x
+		y1 = player_y
+		y2 = orc_y
+		
+		last_message = 's:' .. start_space .. 'e: ' .. end_space
+		
+		
+	end
 
 	function moveOrc()
 
@@ -46,7 +62,6 @@ function load()
 			possible_orc_y = y_table[math.random(1,3)]
 
 			space = ((orc_y + possible_orc_y)-1) * (map_width) + (orc_x + possible_orc_x)
-
 			if walls[space].type == 'wall' then
 				goodSpot = 'no'
 			else
@@ -62,6 +77,45 @@ function load()
 				else
 					orc_space = (orc_y-1) * (map_width) + (orc_x)
 				end
+				
+				findPath(orc_space, player_space)
+				
+				-- Face the orc in some direction
+				
+				if possible_orc_x == -1 then
+					if possible_orc_y == -1 then
+						new_orc_facing = 225
+					end
+					if possible_orc_y == 0 then
+						new_orc_facing = 180
+					end
+					if possible_orc_y == 1 then
+						new_orc_facing = 135
+					end
+				end
+				if possible_orc_x == 0 then
+					if possible_orc_y == -1 then
+						new_orc_facing = 180
+					end
+					if possible_orc_y == 0 then
+						new_orc_facing = orc_facing
+					end
+					if possible_orc_y == 1 then
+						new_orc_facing = 90
+					end
+				end
+				if possible_orc_x == 1 then
+					if possible_orc_y == -1 then
+						new_orc_facing = 315
+					end
+					if possible_orc_y == 0 then
+						new_orc_facing = 0
+					end
+					if possible_orc_y == 1 then
+						new_orc_facing = 45
+					end
+				end
+				orc_facing = new_orc_facing
 			end
 		until goodSpot == 'yes'
 	end
@@ -120,6 +174,7 @@ function load()
 		if walls[space].type == 'wall' then
 			playerMoved = 'no'
 			last_message = '*bump*'
+			message_angle = 10
 		else
 			playerMoved = 'yes'
 			last_message = ''
@@ -204,6 +259,7 @@ function load()
 			orc_x_pixels = possible_orc_x * grid_size - (grid_size/2)
 			orc_y_pixels = possible_orc_y * grid_size - (grid_size/2)
 			orc_space = space
+			orc_facing = 0
 		else
 			goodSpot = 'no'
 		end
@@ -261,16 +317,17 @@ function draw()
 	end
 	
 	love.graphics.draw(orc, orc_x_pixels, orc_y_pixels)
+	love.graphics.draw(arrow, orc_x_pixels, orc_y_pixels, orc_facing)
 	love.graphics.draw(pie, pie_x, pie_y)
 	love.graphics.draw(player, player_x_pixels, player_y_pixels, player_facing)
 	love.graphics.draw(arrow, player_x_pixels, player_y_pixels,player_facing)
 	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 630)
 	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 645)
-	love.graphics.draw(last_message, 250, 625,10)
+	love.graphics.draw(last_message, message_x, message_y,message_angle)
 	love.graphics.draw("facing " .. player_facing, 520, 620)
 
 	love.graphics.draw("moves " .. totalMoves, 520, 650)
-
+	love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
 end
 
 
