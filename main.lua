@@ -21,6 +21,7 @@ function load()
 	last_message = ''
 	orc_space = ''
 	player_space = ''
+	orc_sees_player = 'no'
 
 	orcs = {speed=1}
 	walls = {}
@@ -47,77 +48,80 @@ function load()
 		y2 = orc_y
 		
 		last_message = 's:' .. start_space .. 'e: ' .. end_space
-		
-		
 	end
 
 	function moveOrc()
-
+		orc_player_x_diff = orc_x + player_x
+		orc_player_y_diff = orc_y + player_y
+		
 		x_table = {0,1,-1}
 		y_table = {0,1,-1}
 		goodSpot = 'no'
 		
-		repeat
-			possible_orc_x = x_table[math.random(1,3)]
-			possible_orc_y = y_table[math.random(1,3)]
+		if orc_sees_player == 'yes' then
+			possible_next_move = findPath(orc_space, player_space)
+		end
+		else
+			repeat
+				possible_orc_x = x_table[math.random(1,3)]
+				possible_orc_y = y_table[math.random(1,3)]
 
-			space = ((orc_y + possible_orc_y)-1) * (map_width) + (orc_x + possible_orc_x)
-			if walls[space].type == 'wall' then
-				goodSpot = 'no'
-			else
-				goodSpot = 'yes'
-				orc_x_pixels = orc_x_pixels + (possible_orc_x * grid_size)
-				orc_y_pixels = orc_y_pixels + (possible_orc_y * grid_size)
-				orc_x = orc_x + possible_orc_x
-				orc_y = orc_y + possible_orc_y
-				pie_x = orc_x_pixels-10
-				pie_y = orc_y_pixels-10
-				if orc_y == 1 then
-					orc_space = orc_x 
+				space = ((orc_y + possible_orc_y)-1) * (map_width) + (orc_x + possible_orc_x)
+				if walls[space].type == 'wall' then
+					goodSpot = 'no'
 				else
-					orc_space = (orc_y-1) * (map_width) + (orc_x)
-				end
+					goodSpot = 'yes'
+					orc_x_pixels = orc_x_pixels + (possible_orc_x * grid_size)
+					orc_y_pixels = orc_y_pixels + (possible_orc_y * grid_size)
+					orc_x = orc_x + possible_orc_x
+					orc_y = orc_y + possible_orc_y
+					pie_x = orc_x_pixels-10
+					pie_y = orc_y_pixels-10
+					if orc_y == 1 then
+						orc_space = orc_x 
+					else
+						orc_space = (orc_y-1) * (map_width) + (orc_x)
+					end
 				
-				findPath(orc_space, player_space)
+					-- Face the orc in some direction
 				
-				-- Face the orc in some direction
-				
-				if possible_orc_x == -1 then
-					if possible_orc_y == -1 then
-						new_orc_facing = 225
+					if possible_orc_x == -1 then
+						if possible_orc_y == -1 then
+							new_orc_facing = 225
+						end
+						if possible_orc_y == 0 then
+							new_orc_facing = 180
+						end
+						if possible_orc_y == 1 then
+							new_orc_facing = 135
+						end
 					end
-					if possible_orc_y == 0 then
-						new_orc_facing = 180
+					if possible_orc_x == 0 then
+						if possible_orc_y == -1 then
+							new_orc_facing = 180
+						end
+						if possible_orc_y == 0 then
+							new_orc_facing = orc_facing
+						end
+						if possible_orc_y == 1 then
+							new_orc_facing = 90
+						end
 					end
-					if possible_orc_y == 1 then
-						new_orc_facing = 135
+					if possible_orc_x == 1 then
+						if possible_orc_y == -1 then
+							new_orc_facing = 315
+						end
+						if possible_orc_y == 0 then
+							new_orc_facing = 0
+						end
+						if possible_orc_y == 1 then
+							new_orc_facing = 45
+						end
 					end
+					orc_facing = new_orc_facing
 				end
-				if possible_orc_x == 0 then
-					if possible_orc_y == -1 then
-						new_orc_facing = 180
-					end
-					if possible_orc_y == 0 then
-						new_orc_facing = orc_facing
-					end
-					if possible_orc_y == 1 then
-						new_orc_facing = 90
-					end
-				end
-				if possible_orc_x == 1 then
-					if possible_orc_y == -1 then
-						new_orc_facing = 315
-					end
-					if possible_orc_y == 0 then
-						new_orc_facing = 0
-					end
-					if possible_orc_y == 1 then
-						new_orc_facing = 45
-					end
-				end
-				orc_facing = new_orc_facing
-			end
-		until goodSpot == 'yes'
+			until goodSpot == 'yes'
+		end
 	end
 
 	function facePlayer(dir)
