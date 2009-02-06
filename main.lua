@@ -30,6 +30,7 @@ function load()
 	orc = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine',str=2}
 	player = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine'}
 	combat_message = ''
+	orc_visible = 'no'
 
 	orcs = {speed=1}
 	walls = {}
@@ -85,6 +86,7 @@ function load()
 				if orc_player_y_diff >= -2 then
 					if orc_player_y_diff <= 2 then
 						orc_sees_player = 'yes'
+						orc_visible = 'yes'
 						if orc_carrying_pie == 'yes' then
 							setDownPie(x*grid_size-(grid_size/2),y*grid_size-(grid_size/2))
 						end
@@ -93,6 +95,7 @@ function load()
 			end
 		else
 			orc_sees_player = 'no'
+			orc_visible = 'no'
 		end
 	end
 	
