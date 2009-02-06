@@ -1,13 +1,15 @@
 -- Set up our set upy things
 
 function load()
-	mode = love.graphics.setMode(650, 700, false, true, 4)
+	mode = love.graphics.setMode(750, 700, false, true, 4)
+	extreme_color = love.graphics.newColor( 100, 0, 0 )
+	fog_of_war = love.graphics.newColor( 255, 255, 255, 60 )
 	currentTime = love.timer.getTime()
 	math.randomseed(os.time())
 	math.random(); math.random(); math.random();
 	numberCharacters = 2
-	map_height = 12
-	map_width = 13
+	map_height = 13
+	map_width = 15
 	grid_size = 50
 	totalMoves = 0
 	numberRooms = 0
@@ -32,6 +34,7 @@ function load()
 	orcs = {speed=1}
 	walls = {}
 	impassable = {}
+	rooms = {}
 
 	function in_table ( search, table ) 
 	 	for _,v in pairs(table) do
@@ -302,16 +305,6 @@ function load()
 		playerMoved = 'no'
 	end
 	
-	rooms = {}
-	while remainingTiles > 12 do
-		numberRooms=numberRooms+1
-		repeat
-			theSize = math.random(12,remainingTiles)
-			dimensions = theSize / 4 + 1
-		until math.mod(theSize, 4) == 0
-		remainingTiles = remainingTiles - theSize
-	end
-	
 	-- Generate room walls around border
 	i = 0
 	for j=1, map_height, 1 do
@@ -319,27 +312,95 @@ function load()
 			i = i + 1
 			x = k
 			y = j
-			walls[i] = {x=x,y=y,type='empty'}
+			walls[i] = {x=x,y=y,type='empty',seen='no'}
 		end
 	end
 	
 	for k,v in pairs(walls) do
 		if v.y == 1 then
-			walls[k] = {x=v.x,y=v.y,type='wall'}
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
 		end
 		if v.x == 1 then
-			walls[k] = {x=v.x,y=v.y,type='wall'}
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
+		end
+		if v.x == math.ceil(map_width/2) then
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
 		end
 		if v.y == map_height then
-			walls[k] = {x=v.x,y=v.y,type='wall'}
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
 		end
 		if v.x == map_width then
-			walls[k] = {x=v.x,y=v.y,type='wall'}
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
+		end
+		if v.y == math.ceil(map_height/2) then
+			walls[k] = {x=v.x,y=v.y,type='wall',seen='no'}
+		end
+	end
+	-- end wall generation
+	
+	-- Room generation
+	
+	for k,v in pairs(walls) do
+		if v.type == 'wall' then
+			remainingTiles = remainingTiles - 1
 		end
 	end
 	
+	rooms[1] = {x=0,y=0}
+	rooms[2] = {x=(map_width/2),y=0}
+	rooms[3] = {x=0,y=(map_height/2)}
+	rooms[4] = {x=(map_width/2),y=(map_height/2)}
+	
+	goodSpot = 'no'
+	repeat
+		random_x = math.random(2,math.ceil(map_width/2)-1)
+		possible_door = getSpace(random_x,math.ceil(map_height/2))
+		x = walls[possible_door].x
+		y = walls[possible_door].y
+		if x ~= math.ceil(map_width/2) then
+			goodSpot = 'yes'
+			walls[possible_door] = {x=x,y=y,type='empty',seen='no'}
+		end
+	until goodSpot == 'yes'
+	
+	goodSpot = 'no'
+	repeat
+		random_x = math.random((math.ceil(map_width/2)+1),(math.ceil(map_width)-1))
+		possible_door = getSpace(random_x,math.ceil(map_height/2))
+		x = walls[possible_door].x
+		y = walls[possible_door].y
+		if x ~= math.ceil(map_width/2) then
+			goodSpot = 'yes'
+			walls[possible_door] = {x=x,y=y,type='empty',seen='no'}
+		end
+	until goodSpot == 'yes'
+	
+	goodSpot = 'no'
+	repeat
+		random_y = math.random(2,(math.ceil(map_height / 2)-1))
+		possible_door = getSpace(math.ceil(map_width/2), random_y)
+		x = walls[possible_door].x
+		y = walls[possible_door].y
+		if x ~= math.ceil(map_height/2) then
+			goodSpot = 'yes'
+			walls[possible_door] = {x=x,y=y,type='empty',seen='no'}
+		end
+	until goodSpot == 'yes'
+	
+	goodSpot = 'no'
+	repeat
+		random_y = math.random((math.ceil(map_height/2)+1),(math.ceil(map_height)-1))
+		possible_door = getSpace(math.ceil(map_width/2),random_y)
+		x = walls[possible_door].x
+		y = walls[possible_door].y
+		if x ~= math.ceil(map_height/2) then
+			goodSpot = 'yes'
+			walls[possible_door] = {x=x,y=y,type='empty',seen='no'}
+		end
+	until goodSpot == 'yes'
+	
 	-- Load a font 
-	local f = love.graphics.newFont(love.default_font, 12) 
+	local f = love.graphics.newFont(love.default_font, 13) 
 	love.graphics.setFont(f)
 	
 	-- Load music
@@ -352,6 +413,7 @@ function load()
 	arrow = love.graphics.newImage("arrow.png")
 	pie = love.graphics.newImage("pie.png")
 	brown_wall = love.graphics.newImage("brown_wall.png")
+	darkened = love.graphics.newImage("darkened.png")
 
 	-- Plop down the orc(s)
 	goodSpot = 'no'
@@ -359,6 +421,7 @@ function load()
 		possible_orc_x = math.random(2,map_height-1)
 		possible_orc_y = math.random(2,map_width-1)
 		space = getSpace(possible_orc_x,possible_orc_y)
+		
 		if walls[space].type == 'empty' then
 			goodSpot = 'yes'
 			orc_x = possible_orc_x
@@ -381,7 +444,7 @@ function load()
 	repeat
 		possible_player_x = math.random(2,map_height-1)
 		possible_player_y = math.random(2,map_width-1)
-		space = math.ceil(possible_player_x * 2) + math.ceil(possible_player_y / 2)
+		space = getSpace(possible_player_x,possible_player_y)
 		if walls[space].type == 'empty' then
 			goodSpot = 'yes'
 			player_x = possible_player_x
@@ -399,13 +462,12 @@ end
 
 function update(dt)
 	currentTime = math.floor(love.timer.getTime())
-	
 end
 
 function draw()
 	-- Draw the grid
 	row=0
-	while row<12 do
+	while row<map_height do
 		column=0
 		while column<16 do
 			love.graphics.draw(grid,column*grid_size+(grid_size / 2),row*grid_size+(grid_size / 2))
@@ -418,7 +480,6 @@ function draw()
 	for k,v in pairs(walls) do
 		if v.type == 'wall' then
 			love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
---			love.graphics.draw("w" .. v.type, g, 610)
 		end
 		g = g + 40
 	end
@@ -428,6 +489,23 @@ function draw()
 	love.graphics.draw(player_sprite, player_x_pixels, player_y_pixels, player_facing)
 	love.graphics.draw(arrow, player_x_pixels, player_y_pixels,player_facing)
 	love.graphics.draw(pie, pie_x, pie_y)
+	
+	for k,v in pairs(walls) do
+		x_diff = v.x - player_x
+		y_diff = v.y - player_y
+		love.graphics.setColor(0,0,0,210)
+		if(x_diff < -1) then
+			love.graphics.rectangle(2, (v.x*grid_size-grid_size), (v.y*grid_size-grid_size),grid_size,grid_size)
+		elseif(x_diff > 1) then
+			love.graphics.rectangle(2, (v.x*grid_size-grid_size), (v.y*grid_size-grid_size),grid_size,grid_size)
+		elseif(y_diff > 1) then
+			love.graphics.rectangle(2, (v.x*grid_size-grid_size), (v.y*grid_size-grid_size),grid_size,grid_size)
+		elseif(y_diff < -1) then
+			love.graphics.rectangle(2, (v.x*grid_size-grid_size), (v.y*grid_size-grid_size),grid_size,grid_size)
+		end
+	end
+	
+	love.graphics.setColor(255,255,255)
 	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 620)
 	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 635)
 	love.graphics.draw("pie position: " .. pie_x .. ", " .. pie_y, 0, 650)
@@ -440,8 +518,15 @@ function draw()
 	end
 	love.graphics.draw(last_message, message_x, message_y,message_angle)
 	love.graphics.draw(combat_message, 250, 635)
-	love.graphics.draw("moves " .. totalMoves, 520, 650)
+	offset = 0
+	love.graphics.draw("door " .. possible_door, 500, 620)
+	for k,v in pairs(rooms) do
+		love.graphics.draw(k .. " " .. v.x, 400+offset, 635)
+		offset = offset+30
+	end
 	
+	
+	love.graphics.draw("moves " .. totalMoves, 400, 650)
 	-- "see player" debugging
 	
 	love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
