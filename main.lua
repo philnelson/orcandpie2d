@@ -1,4 +1,37 @@
 -- Set up our set upy things
+function rollUpPlayer()
+	dex_score = rollDice(3,6)
+	str_score = rollDice(3,6)
+	con_score = rollDice(3,6)
+	player = {dex=dex_score, str=str_score, con=con_score}
+	return player
+end
+
+function rollUpOrc()
+	dex_score = rollDice(2,6)
+	str_score = rollDice(5,6)
+	con_score = rollDice(5,6)
+	orc = {dex=dex_score, str=str_score, con=con_score}
+	return orc
+end
+
+function rollDice(number,sides)
+	rolls = {}
+	total = 0
+	for i=1, number, 1 do
+		table.insert(rolls,math.random(1,sides))
+	end
+	for k,v in pairs(rolls) do
+		total = v+total
+	end
+	return total
+end
+
+function revealTiles(x,y)
+	for i=-1, 1, 1 do
+		love.graphics.draw(brown_wall,1,1)
+	end
+end
 
 function load()
 	mode = love.graphics.setMode(750, 700, false, true, 4)
@@ -7,6 +40,8 @@ function load()
 	currentTime = love.timer.getTime()
 	math.randomseed(os.time())
 	math.random(); math.random(); math.random();
+	player = rollUpPlayer()
+	orc = rollUpOrc()
 	numberCharacters = 2
 	map_height = 13
 	map_width = 15
@@ -27,8 +62,8 @@ function load()
 	player_space = ''
 	orc_sees_player = 'no'
 	orc_carrying_pie = 'yes'
-	orc = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine',str=2}
-	player = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine'}
+	orc_limbs = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine',str=2}
+	player_limbs = {l_arm='fine',r_arm='fine',l_leg='fine',r_leg='fine',neck='fine',chest='fine'}
 	combat_message = ''
 	orc_visible = 'no'
 
@@ -36,46 +71,31 @@ function load()
 	walls = {}
 	impassable = {}
 	rooms = {}
-
-	function in_table ( search, table ) 
-	 	for _,v in pairs(table) do
-			if (v==search) then return true end
-		end
-		return false
-	end
 	
 	function getSpace(x,y)
 		space = (y-1) * (map_width) + (x)
 		return space
 	end
 	
-	function findPath(start_space, end_space)
+	function findPath(x1, y1, x2, y2)
 		openList = {}
 		closedList = {}
+		for k,v in pairs(walls) do
+			space = getSpace(v.x,v.y)
+			if v.type == 'wall' then
+				table.insert(closedList,space)
+			else
+				table.insert(openList,space)
+			end
+		end
+		
 		x1 = player_x
 		x2 = orc_x
 		y1 = player_y
 		y2 = orc_y
 		
-		last_message = 's:' .. start_space .. 'e: ' .. end_space
+		--last_message = 's:' .. start_space .. 'e: ' .. end_space
 		
-	end
-	
-	function rollUpPlayer()
-		dex_score = rollDice(3,6)
-		player = {dex=dex_score}
-	end
-	
-	function rollDice(number,sides)
-		rolls = {}
-		total = 0
-		for i=1, number, 1 do
-			table.insert(roll,math.random(1,sides))
-		end
-		for k,v in pairs(rolls) do
-			total = v+total
-		end
-		return total
 	end
 	
 	function canSeePlayer(x,y)
@@ -301,6 +321,7 @@ function load()
 				pie_x = player_x_pixels
 				pie_y = player_y_pixels
 			end
+			revealTiles(player_space)
 			moveOrc()
 			totalMoves = totalMoves+1
 		end
@@ -349,10 +370,10 @@ function load()
 		end
 	end
 	
-	rooms[1] = {x=0,y=0}
-	rooms[2] = {x=(map_width/2),y=0}
-	rooms[3] = {x=0,y=(map_height/2)}
-	rooms[4] = {x=(map_width/2),y=(map_height/2)}
+	rooms[1] = {x=2,y=2}
+	rooms[2] = {x=math.ceil(map_width/2)+1,y=2}
+	rooms[3] = {x=2,y=math.ceil(map_height/2)+1}
+	rooms[4] = {x=math.ceil(map_width/2)+1,y=math.ceil(map_height/2)+1}
 	
 	goodSpot = 'no'
 	repeat
@@ -406,7 +427,7 @@ function load()
 	local f = love.graphics.newFont(love.default_font, 13) 
 	love.graphics.setFont(f)
 	
-	-- Load music
+	-- Load graphics
 	love.graphics.setCaption("Orc & Pie")
 	grid = love.graphics.newImage("grid.png")
 	
@@ -421,11 +442,13 @@ function load()
 	-- Plop down the orc(s)
 	goodSpot = 'no'
 	repeat
-		possible_orc_x = math.random(2,map_height-1)
-		possible_orc_y = math.random(2,map_width-1)
-		space = getSpace(possible_orc_x,possible_orc_y)
-		
-		if walls[space].type == 'empty' then
+		repeat
+			possible_orc_x = math.random(2,map_height-1)
+			possible_orc_y = math.random(2,map_width-1)
+			space = getSpace(possible_orc_x,possible_orc_y)
+		until type(space) == 'number'
+		theSpace = walls[space].type
+		if theSpace == 'empty' then
 			goodSpot = 'yes'
 			orc_x = possible_orc_x
 			orc_y = possible_orc_y
@@ -445,9 +468,11 @@ function load()
 	-- plop down the player
 	goodSpot = 'no'
 	repeat
-		possible_player_x = math.random(2,map_height-1)
-		possible_player_y = math.random(2,map_width-1)
-		space = getSpace(possible_player_x,possible_player_y)
+		repeat
+			possible_player_x = math.random(2,map_height-1)
+			possible_player_y = math.random(2,map_width-1)
+			space = getSpace(possible_player_x,possible_player_y)
+		until type(space) == 'number'
 		if walls[space].type == 'empty' then
 			goodSpot = 'yes'
 			player_x = possible_player_x
@@ -464,10 +489,22 @@ function load()
 end
 
 function update(dt)
-	currentTime = math.floor(love.timer.getTime())
+	--currentTime = math.floor(love.timer.getTime())
 end
 
 function draw()
+	
+	g = 0
+	for k,v in pairs(walls) do
+		if v.type == 'wall' then
+			if v.seen == 'no' then
+				love.graphics.draw(darkened, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+			else
+				love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+			end
+		end
+		g = g + 40
+	end
 	-- Draw the grid
 	row=0
 	while row<map_height do
@@ -479,20 +516,13 @@ function draw()
 		row = row+1
 	end
 	
-	g = 0
-	for k,v in pairs(walls) do
-		if v.type == 'wall' then
-			love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
-		end
-		g = g + 40
-	end
-	
 	love.graphics.draw(orc_sprite, orc_x_pixels, orc_y_pixels)
-	love.graphics.draw(arrow, orc_x_pixels, orc_y_pixels, orc_facing)
+	--love.graphics.draw(arrow, orc_x_pixels, orc_y_pixels, orc_facing)
 	love.graphics.draw(player_sprite, player_x_pixels, player_y_pixels, player_facing)
 	love.graphics.draw(arrow, player_x_pixels, player_y_pixels,player_facing)
 	love.graphics.draw(pie, pie_x, pie_y)
 	
+	-- "Fog of war"
 	for k,v in pairs(walls) do
 		x_diff = v.x - player_x
 		y_diff = v.y - player_y
@@ -509,31 +539,27 @@ function draw()
 	end
 	
 	love.graphics.setColor(255,255,255)
-	love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 620)
-	love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 635)
-	love.graphics.draw("pie position: " .. pie_x .. ", " .. pie_y, 0, 650)
-	love.graphics.draw("pie " .. pie_status, 0, 665)
-	love.graphics.draw("you: ", 0, 680)
-	offset = 30
-	for k,v in pairs(player) do
-		love.graphics.draw(k .. ' ' .. v, offset, 680)
-		offset = offset+65
+	--love.graphics.draw("player position: " .. player_x .. ", " .. player_y .. " : " .. player_space, 0, 620)
+	love.graphics.draw("you: str " .. player.str .. ", con " .. player.con .. ", dex " .. player.dex, 0, 620)
+	--love.graphics.draw("orc position: " .. orc_x .. ", " .. orc_y .. " : " .. orc_space, 0, 635)
+	love.graphics.draw("orc: str " .. orc.str .. ", con " .. orc.con .. ", dex " .. orc.dex, 0, 635)
+	--love.graphics.draw("pie position: " .. pie_x .. ", " .. pie_y, 0, 650)
+	love.graphics.draw("pie " .. pie_status, 0, 650)
+	o = 0
+	for k,v in pairs(rooms) do
+		love.graphics.draw("room " .. k .. " is " .. v.x + math.ceil(map_width/2)-4 .. " by " .. v.x + math.ceil(map_height/2)-4,o,675)
+		o = o + 120
 	end
+	
 	love.graphics.draw(last_message, message_x, message_y,message_angle)
 	love.graphics.draw(combat_message, 250, 635)
-	offset = 0
-	love.graphics.draw("door " .. possible_door, 500, 620)
-	for k,v in pairs(rooms) do
-		love.graphics.draw(k .. " " .. v.x, 400+offset, 635)
-		offset = offset+30
-	end
 	
 	
-	love.graphics.draw("moves " .. totalMoves, 400, 650)
+	love.graphics.draw("moves " .. totalMoves, 600, 700)
 	-- "see player" debugging
 	
-	love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
-	love.graphics.rectangle(1, orc_x_pixels-(grid_size*2)-(grid_size/2), orc_y_pixels-(grid_size*2)-(grid_size/2),(grid_size*5),(grid_size*5))
+	--love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
+	--love.graphics.rectangle(1, orc_x_pixels-(grid_size*2)-(grid_size/2), orc_y_pixels-(grid_size*2)-(grid_size/2),(grid_size*5),(grid_size*5))
 end
 
 
