@@ -28,9 +28,15 @@ function rollDice(number,sides)
 end
 
 function revealTiles(x,y)
-	for i=-1, 1, 1 do
-		love.graphics.draw(brown_wall,1,1)
-	end
+	local space = getSpace(x,y)
+	walls[space-1].seen = 'yes'
+	walls[space+1].seen = 'yes'
+	walls[space+map_width].seen = 'yes'
+	walls[space+(map_width)-1].seen = 'yes'
+	walls[space+(map_width)+1].seen = 'yes'
+	walls[space-map_width].seen = 'yes'
+	walls[space-(map_width)-1].seen = 'yes'
+	walls[space-(map_width)+1].seen = 'yes'
 end
 
 function load()
@@ -321,7 +327,7 @@ function load()
 				pie_x = player_x_pixels
 				pie_y = player_y_pixels
 			end
-			revealTiles(player_space)
+			revealTiles(player_x,player_y)
 			moveOrc()
 			totalMoves = totalMoves+1
 		end
@@ -489,7 +495,7 @@ function load()
 end
 
 function update(dt)
-	--currentTime = math.floor(love.timer.getTime())
+	currentTime = math.floor(love.timer.getTime())
 end
 
 function draw()
@@ -526,7 +532,7 @@ function draw()
 	for k,v in pairs(walls) do
 		x_diff = v.x - player_x
 		y_diff = v.y - player_y
-		love.graphics.setColor(0,0,0,210)
+		love.graphics.setColor(0,0,0,100)
 		if(x_diff < -1) then
 			love.graphics.rectangle(2, (v.x*grid_size-grid_size), (v.y*grid_size-grid_size),grid_size,grid_size)
 		elseif(x_diff > 1) then
