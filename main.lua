@@ -7,6 +7,14 @@ function rollUpPlayer()
 	return player
 end
 
+function drawExitMenu()
+	showExitMenu = true
+end
+
+function clearMenus()
+	showExitMenu = false
+end
+
 function rollUpOrc()
 	dex_score = rollDice(2,6)
 	str_score = rollDice(5,6)
@@ -40,14 +48,20 @@ function revealTiles(x,y)
 end
 
 function load()
+	love.graphics.setBackgroundColor(10,10,10)
 	mode = love.graphics.setMode(750, 700, false, true, 4)
+	window_height = love.graphics.getHeight()
+	window_width = love.graphics.getWidth()
 	extreme_color = love.graphics.newColor( 100, 0, 0 )
 	fog_of_war = love.graphics.newColor( 255, 255, 255, 60 )
 	currentTime = love.timer.getTime()
+	menuFont = love.graphics.newFont(love.default_font, 20) 
+	uiFont = love.graphics.newFont(love.default_font, 13) 
 	math.randomseed(os.time())
 	math.random(); math.random(); math.random();
 	player = rollUpPlayer()
 	orc = rollUpOrc()
+	menuShown = false
 	numberCharacters = 2
 	map_height = 13
 	map_width = 15
@@ -252,6 +266,8 @@ function load()
 
 	function movePlayer(dir)
 		if dir == 'punch' then
+			possible_player_x = 0
+			possible_player_y = 0
 			playerMoved = 'yes'
 		end
 		if dir == 'up_left' then
@@ -300,7 +316,7 @@ function load()
 		if walls[space].type == 'wall' then
 			playerMoved = 'no'
 			last_message = '*bump*'
-			message_angle = 10
+			message_angle = 0
 		else
 			playerMoved = 'yes'
 			last_message = ''
@@ -330,6 +346,10 @@ function load()
 			revealTiles(player_x,player_y)
 			moveOrc()
 			totalMoves = totalMoves+1
+			clearMenus()
+			if player_space == stairs_space then
+				drawExitMenu()
+			end
 		end
 
 		playerMoved = 'no'
@@ -428,10 +448,7 @@ function load()
 			walls[possible_door] = {x=x,y=y,type='empty',seen='no'}
 		end
 	until goodSpot == 'yes'
-	
-	-- Load a font 
-	local f = love.graphics.newFont(love.default_font, 13) 
-	love.graphics.setFont(f)
+
 	
 	-- Load graphics
 	love.graphics.setCaption("Orc & Pie")
@@ -440,9 +457,12 @@ function load()
 	orc_sprite = love.graphics.newImage("orc.png")
 	
 	player_sprite = love.graphics.newImage("player.png")
+	stairs = love.graphics.newImage("up_stairs.png")
 	arrow = love.graphics.newImage("arrow.png")
 	pie = love.graphics.newImage("pie.png")
 	brown_wall = love.graphics.newImage("brown_wall.png")
+	stone_wall = love.graphics.newImage("stone_wall.png")
+	green_grass = love.graphics.newImage("green_grass.png")
 	darkened = love.graphics.newImage("darkened.png")
 
 	-- Plop down the orc(s)
@@ -486,11 +506,32 @@ function load()
 			player_x_pixels = possible_player_x * grid_size - (grid_size/2)
 			player_y_pixels = possible_player_y * grid_size - (grid_size/2)
 			player_space = space
+			revealTiles(player_x,player_y)
 		else
 			goodSpot = 'no'
 		end
 	until goodSpot == 'yes'
 	player_facing = 0
+	goodSpot = 'no'
+	-- Drop the stairs
+	repeat
+		possible_stairs_x = math.random(2,map_height-1)
+		possible_stairs_y = math.random(2,map_width-1)
+		space = getSpace(possible_stairs_x,possible_stairs_y)
+		if walls[space].type == 'empty' then
+			if walls[space] ~= player_space then
+				goodSpot = 'yes'
+				up_stairs_x = possible_stairs_x
+				up_stairs_y = possible_stairs_y
+				up_stairs_x_pixels = possible_stairs_x * grid_size - (grid_size/2)
+				up_stairs_y_pixels = possible_stairs_y * grid_size - (grid_size/2)
+				stairs_space = space
+				walls[space].type = 'stairs'
+			end
+		else
+			goodSpot = 'no'
+		end
+	until goodSpot == 'yes'
 	
 end
 
@@ -499,28 +540,37 @@ function update(dt)
 end
 
 function draw()
-	
-	g = 0
-	for k,v in pairs(walls) do
-		if v.type == 'wall' then
-			if v.seen == 'no' then
-				love.graphics.draw(darkened, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
-			else
-				love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
-			end
-		end
-		g = g + 40
-	end
 	-- Draw the grid
 	row=0
 	while row<map_height do
 		column=0
 		while column<16 do
+			
 			love.graphics.draw(grid,column*grid_size+(grid_size / 2),row*grid_size+(grid_size / 2))
+			--love.graphics.draw(green_grass,column*grid_size+(grid_size / 2),row*grid_size+(grid_size / 2))
 			column = column+1
 		end
 		row = row+1
 	end
+	g = 0
+	for k,v in pairs(walls) do
+		if v.type == 'wall' then
+			if v.seen == 'no' then
+				--love.graphics.draw(darkened, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+			else
+				love.graphics.draw(brown_wall, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+			end
+		end
+		if v.type == 'stairs' then
+			if v.seen == 'no' then
+				--love.graphics.draw(darkened, v.x*grid_size-(grid_size/2), v.y*grid_size-(grid_size/2))
+			else
+				love.graphics.draw(stairs, up_stairs_x_pixels, up_stairs_y_pixels)
+			end
+		end
+		g = g + 40
+	end
+
 	
 	love.graphics.draw(orc_sprite, orc_x_pixels, orc_y_pixels)
 	--love.graphics.draw(arrow, orc_x_pixels, orc_y_pixels, orc_facing)
@@ -562,10 +612,26 @@ function draw()
 	
 	
 	love.graphics.draw("moves " .. totalMoves, 600, 700)
+	--
 	-- "see player" debugging
 	
 	--love.graphics.line(player_x_pixels, player_y_pixels, orc_x_pixels, orc_y_pixels )
 	--love.graphics.rectangle(1, orc_x_pixels-(grid_size*2)-(grid_size/2), orc_y_pixels-(grid_size*2)-(grid_size/2),(grid_size*5),(grid_size*5))
+	if menuShown == true then
+	--	love.graphics.setFont(menuFont)
+	else
+		love.graphics.setFont(uiFont)
+	end
+	
+	if showExitMenu == true then
+		love.graphics.setColor( 255, 255, 255 )
+		love.graphics.rectangle( 1, (window_width/2)-200, (window_height/2)-200, 400, 200 )
+		love.graphics.setColor( 10, 10, 255 )
+		love.graphics.rectangle( 2, (window_width/2)-199, (window_height/2)-199, 399, 199 )
+		love.graphics.setColor( 255, 255, 255 )
+		love.graphics.draw("(Spacebar) to exit, move to stay", (window_height/2)-100, 250)
+		menuShown = true
+	end
 end
 
 
